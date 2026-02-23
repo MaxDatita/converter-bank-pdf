@@ -1,15 +1,51 @@
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+type SupabaseClient = ReturnType<typeof createClient>
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+function getSupabasePublicEnv() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      "Faltan variables de entorno de Supabase: NEXT_PUBLIC_SUPABASE_URL y/o NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    )
+  }
+
+  return { supabaseUrl, supabaseAnonKey }
+}
+
+let cachedSupabaseClient: SupabaseClient | null = null
+
+function getCachedSupabaseClient(): SupabaseClient {
+  if (!cachedSupabaseClient) {
+    const { supabaseUrl, supabaseAnonKey } = getSupabasePublicEnv()
+    cachedSupabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+  }
+
+  return cachedSupabaseClient
+}
+
+// Proxy lazy: evita crear el cliente en import-time (rompía build en Vercel sin env configuradas).
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop, receiver) {
+    const client = getCachedSupabaseClient()
+    const value = Reflect.get(client as object, prop, receiver)
+    return typeof value === "function" ? value.bind(client) : value
+  },
+  set(_target, prop, value, receiver) {
+    const client = getCachedSupabaseClient()
+    return Reflect.set(client as object, prop, value, receiver)
+  },
+})
 
 export function createSupabaseClient() {
+  const { supabaseUrl, supabaseAnonKey } = getSupabasePublicEnv()
   return createClient(supabaseUrl, supabaseAnonKey)
 }
 
 export function createSupabaseAdminClient() {
+  const { supabaseUrl, supabaseAnonKey } = getSupabasePublicEnv()
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceKey) {
     console.warn("SUPABASE_SERVICE_ROLE_KEY not available, using anon client")
