@@ -1,0 +1,120 @@
+{
+  "debitos": [
+    {
+      "pattern": "PM/TOT.MASTER",
+      "description": "Pagos con tarjeta Mastercard",
+      "regex": "PM/TOT\\.?MASTER.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "PM/TOT.NATIVA MC",
+      "description": "Pagos con tarjeta Nativa Mastercard",
+      "regex": "PM/TOT\\.?NATIVA\\s+MC.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "PM/TOT. RES. VISA",
+      "description": "Pagos con tarjeta Visa",
+      "regex": "PM/TOT\\.?\\s*RES\\.?\\s*VISA.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "DEBITO AUTOMATICO",
+      "description": "Débitos automáticos",
+      "regex": "DEBITO\\s+AUTOMATICO.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "PAGO LINK",
+      "description": "Pagos realizados por Link",
+      "regex": "PAGO\\s+LINK.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "EXTRACCION",
+      "description": "Extracciones de cajero automático",
+      "regex": "EXTRACCION.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "COMISION",
+      "description": "Comisiones bancarias",
+      "regex": "COMISION.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "MANTENIMIENTO",
+      "description": "Mantenimiento de cuenta",
+      "regex": "MANTENIMIENTO.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "COMPRA",
+      "description": "Compras con tarjeta",
+      "regex": "COMPRA.*",
+      "case_insensitive": true
+    }
+  ],
+  "creditos": [
+    {
+      "pattern": "DEBIN",
+      "description": "Transferencias DEBIN recibidas (formato: DEBIN + CUIT)",
+      "regex": "DEBIN\\s+\\d{11}.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "CR.TRANF.INT.DI-LINK",
+      "description": "Transferencias internas recibidas por Link",
+      "regex": "CR\\.?TRANF\\.?INT\\.?DI-?LINK.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "INTERESES CAPITALIZADOS",
+      "description": "Intereses acreditados en la cuenta",
+      "regex": "INTERESES\\s+CAPITALIZADOS.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "TRANSFERENCIA",
+      "description": "Transferencias recibidas (cuando no es envío)",
+      "regex": "TRANSFERENCIA(?!.*ENVIADA).*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "DEPOSITO",
+      "description": "Depósitos en efectivo",
+      "regex": "DEPOSITO.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "ACREDITACION",
+      "description": "Acreditaciones diversas",
+      "regex": "ACREDITACION.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "PS-ANTICIPO HAB",
+      "description": "Anticipo de haberes",
+      "regex": "PS-?ANTICIPO\\s+HAB.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "SUELDO",
+      "description": "Acreditación de sueldo",
+      "regex": "SUELDO.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "HABERES",
+      "description": "Acreditación de haberes",
+      "regex": "HABERES.*",
+      "case_insensitive": true
+    },
+    {
+      "pattern": "REINTEGRO",
+      "description": "Reintegros diversos",
+      "regex": "REINTEGRO.*",
+      "case_insensitive": true
+    }
+  ]
+}
