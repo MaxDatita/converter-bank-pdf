@@ -283,6 +283,71 @@ export default function BankStatementConverter() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMounted, user?.id, currentPlan])
 
+  // Estado para vinculación de suscripción de Mercado Pago
+  const [subscriptionLinkStatus, setSubscriptionLinkStatus] = useState<'idle' | 'linking' | 'success' | 'error'>('idle')
+  const [subscriptionLinkMessage, setSubscriptionLinkMessage] = useState<string | null>(null)
+
+  // Capturar redirect de Mercado Pago con preapproval_id en la URL
+  useEffect(() => {
+    if (!isMounted) return
+
+    const params = new URLSearchParams(window.location.search)
+    const preapprovalId = params.get("preapproval_id")
+
+    if (!preapprovalId) return
+
+    // Limpiar el query param de la URL inmediatamente
+    const cleanUrl = window.location.pathname
+    window.history.replaceState({}, "", cleanUrl)
+
+    const linkSubscription = async () => {
+      if (!user) {
+        setSubscriptionLinkMessage("Iniciá sesión para activar tu suscripción.")
+        setSubscriptionLinkStatus("error")
+        return
+      }
+
+      setSubscriptionLinkStatus("linking")
+      setSubscriptionLinkMessage("Activando tu suscripción...")
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) {
+          setSubscriptionLinkStatus("error")
+          setSubscriptionLinkMessage("No se pudo obtener tu sesión. Intentá recargar la página.")
+          return
+        }
+
+        const response = await fetch("/api/link-subscription", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ preapprovalId }),
+        })
+
+        const result = await response.json()
+
+        if (response.ok) {
+          setSubscriptionLinkStatus("success")
+          setSubscriptionLinkMessage(`¡Suscripción ${result.plan === "premium" ? "Premium" : "Pro"} activada exitosamente!`)
+          // Refrescar el perfil para que la UI refleje el nuevo plan
+          await refreshProfile()
+        } else {
+          setSubscriptionLinkStatus("error")
+          setSubscriptionLinkMessage(result.error || "No se pudo activar la suscripción.")
+        }
+      } catch {
+        setSubscriptionLinkStatus("error")
+        setSubscriptionLinkMessage("Error al conectar con el servidor.")
+      }
+    }
+
+    linkSubscription()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted, user?.id])
+
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [showAccountModal, setShowAccountModal] = useState(false)
   const [conversionHistory, setConversionHistory] = useState<ConversionHistoryItem[]>([])
@@ -1118,6 +1183,26 @@ export default function BankStatementConverter() {
         {error && (
           <Alert className="mb-6 border-red-200 bg-red-50 backdrop-blur-sm">
             <AlertDescription className="text-red-800">{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Notificación de vinculación de suscripción MP */}
+        {subscriptionLinkStatus === 'linking' && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50 backdrop-blur-sm">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            <AlertDescription className="text-blue-800 ml-2">{subscriptionLinkMessage}</AlertDescription>
+          </Alert>
+        )}
+        {subscriptionLinkStatus === 'success' && (
+          <Alert className="mb-6 border-green-200 bg-green-50 backdrop-blur-sm">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800 ml-2">{subscriptionLinkMessage}</AlertDescription>
+          </Alert>
+        )}
+        {subscriptionLinkStatus === 'error' && subscriptionLinkMessage && (
+          <Alert className="mb-6 border-red-200 bg-red-50 backdrop-blur-sm">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800 ml-2">{subscriptionLinkMessage}</AlertDescription>
           </Alert>
         )}
 
