@@ -2230,7 +2230,16 @@ export default function BankStatementConverter() {
                           <span className="text-sm">Procesamiento prioritario</span>
                         </div>
                       </div>
-                      <Button className="w-full bg-[#2980b9] hover:bg-[#1e5f8b] mt-6" disabled={currentPlan === "pro"}>
+                      <Button
+                        className="w-full bg-[#2980b9] hover:bg-[#1e5f8b] mt-6"
+                        disabled={currentPlan === "pro"}
+                        onClick={() => {
+                          if (currentPlan !== "pro") {
+                            if (!user) { setShowLoginModal(true); return }
+                            window.location.href = process.env.NEXT_PUBLIC_MP_PRO_LINK!
+                          }
+                        }}
+                      >
                         {currentPlan === "pro" ? "Plan Actual" : "Suscribirse Pro"}
                       </Button>
                     </CardContent>
@@ -2272,6 +2281,12 @@ export default function BankStatementConverter() {
                       <Button
                         className="w-full bg-gradient-to-r from-[#2980b9] to-[#6dd5fa] hover:from-[#1e5f8b] hover:to-[#5bc3e8] mt-6"
                         disabled={currentPlan === "premium"}
+                        onClick={() => {
+                          if (currentPlan !== "premium") {
+                            if (!user) { setShowLoginModal(true); return }
+                            window.location.href = process.env.NEXT_PUBLIC_MP_PREMIUM_LINK!
+                          }
+                        }}
                       >
                         {currentPlan === "premium" ? "Plan Actual" : "Suscribirse Premium"}
                       </Button>
