@@ -287,7 +287,47 @@ export default function BankStatementConverter() {
   const [subscriptionLinkStatus, setSubscriptionLinkStatus] = useState<'idle' | 'linking' | 'success' | 'error'>('idle')
   const [subscriptionLinkMessage, setSubscriptionLinkMessage] = useState<string | null>(null)
 
-  // Capturar redirect de Mercado Pago con preapproval_id en la URL
+  const MP_PENDING_KEY = "mp_pending_preapproval_id"
+
+  const executeLinkSubscription = async (preapprovalId: string) => {
+    setSubscriptionLinkStatus("linking")
+    setSubscriptionLinkMessage("Activando tu suscripción...")
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        setSubscriptionLinkStatus("error")
+        setSubscriptionLinkMessage("No se pudo obtener tu sesión. Intentá recargar la página.")
+        return
+      }
+
+      const response = await fetch("/api/link-subscription", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ preapprovalId }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        sessionStorage.removeItem(MP_PENDING_KEY)
+        setSubscriptionLinkStatus("success")
+        setSubscriptionLinkMessage(`¡Suscripción ${result.plan === "premium" ? "Premium" : "Pro"} activada exitosamente!`)
+        await refreshProfile()
+      } else {
+        setSubscriptionLinkStatus("error")
+        setSubscriptionLinkMessage(result.error || "No se pudo activar la suscripción.")
+      }
+    } catch {
+      setSubscriptionLinkStatus("error")
+      setSubscriptionLinkMessage("Error al conectar con el servidor.")
+    }
+  }
+
+  // Paso 1: capturar preapproval_id de la URL al volver de MP
   useEffect(() => {
     if (!isMounted) return
 
@@ -296,57 +336,32 @@ export default function BankStatementConverter() {
 
     if (!preapprovalId) return
 
-    // Limpiar el query param de la URL inmediatamente
-    const cleanUrl = window.location.pathname
-    window.history.replaceState({}, "", cleanUrl)
+    // Limpiar la URL inmediatamente para no exponer el ID
+    window.history.replaceState({}, "", window.location.pathname)
 
-    const linkSubscription = async () => {
-      if (!user) {
-        setSubscriptionLinkMessage("Iniciá sesión para activar tu suscripción.")
-        setSubscriptionLinkStatus("error")
-        return
-      }
-
-      setSubscriptionLinkStatus("linking")
-      setSubscriptionLinkMessage("Activando tu suscripción...")
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.access_token) {
-          setSubscriptionLinkStatus("error")
-          setSubscriptionLinkMessage("No se pudo obtener tu sesión. Intentá recargar la página.")
-          return
-        }
-
-        const response = await fetch("/api/link-subscription", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ preapprovalId }),
-        })
-
-        const result = await response.json()
-
-        if (response.ok) {
-          setSubscriptionLinkStatus("success")
-          setSubscriptionLinkMessage(`¡Suscripción ${result.plan === "premium" ? "Premium" : "Pro"} activada exitosamente!`)
-          // Refrescar el perfil para que la UI refleje el nuevo plan
-          await refreshProfile()
-        } else {
-          setSubscriptionLinkStatus("error")
-          setSubscriptionLinkMessage(result.error || "No se pudo activar la suscripción.")
-        }
-      } catch {
-        setSubscriptionLinkStatus("error")
-        setSubscriptionLinkMessage("Error al conectar con el servidor.")
-      }
+    if (user) {
+      // Usuario ya logueado → vincular de inmediato
+      executeLinkSubscription(preapprovalId)
+    } else {
+      // Usuario no logueado → guardar en sessionStorage y pedir login
+      sessionStorage.setItem(MP_PENDING_KEY, preapprovalId)
+      setSubscriptionLinkStatus("error")
+      setSubscriptionLinkMessage("Tu pago fue procesado. Iniciá sesión para activar tu suscripción.")
+      setShowLoginModal(true)
     }
-
-    linkSubscription()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMounted, user?.id])
+  }, [isMounted])
+
+  // Paso 2: cuando el usuario se loguea, chequear si hay un preapproval pendiente
+  useEffect(() => {
+    if (!user) return
+
+    const pendingId = sessionStorage.getItem(MP_PENDING_KEY)
+    if (pendingId) {
+      executeLinkSubscription(pendingId)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [showAccountModal, setShowAccountModal] = useState(false)
